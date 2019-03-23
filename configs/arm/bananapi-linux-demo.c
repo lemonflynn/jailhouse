@@ -61,10 +61,10 @@ struct {
 			.flags = JAILHOUSE_MEM_READ | JAILHOUSE_MEM_WRITE |
 				JAILHOUSE_MEM_IO | JAILHOUSE_MEM_IO_32,
 		},
-		/* UART 7 */ {
-			.phys_start = 0x01c29c00,
-			.virt_start = 0x01c29c00,
-			.size = 0x400,
+		/* UART 4 - 7 */ {
+			.phys_start = 0x01c29000,
+			.virt_start = 0x01c29000,
+			.size = 0x1000,
 			.flags = JAILHOUSE_MEM_READ | JAILHOUSE_MEM_WRITE |
 				JAILHOUSE_MEM_IO | JAILHOUSE_MEM_IO_32,
 		},
@@ -76,9 +76,9 @@ struct {
 				JAILHOUSE_MEM_EXECUTE | JAILHOUSE_MEM_LOADABLE,
 		},
 		/* RAM */ {
-			.phys_start = 0x78000000,
-			.virt_start = 0x78000000,
-			.size = 0x3ef0000,
+			.phys_start = 0x60000000,
+			.virt_start = 0x60000000,
+			.size = 0x1bef0000,
 			.flags = JAILHOUSE_MEM_READ | JAILHOUSE_MEM_WRITE |
 				JAILHOUSE_MEM_EXECUTE | JAILHOUSE_MEM_DMA |
 				JAILHOUSE_MEM_LOADABLE,
