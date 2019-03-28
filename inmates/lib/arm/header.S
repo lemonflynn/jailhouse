@@ -46,12 +46,12 @@
 	.align 5
 vectors:
 	b	__reset_entry
-	b	vector_undef
+	b	__vector_undef
 	b	vector_svc
 	b	vector_pabt
 	b	vector_dabt
 	b	vector_unused
-	b	vector_irq
+	b	__sched_irq
 	b	vector_fiq
 
 .macro vector, name
@@ -61,11 +61,79 @@ vectors:
 .endm
 	vector undef
 	vector svc
-	vector pabt
-	vector dabt
+	//vector pabt
+	//vector dabt
 	vector unused
-	vector irq
+	//vector irq
 	vector fiq
+
+__sched_irq:
+	/*lr point to the interrupted instruction*/
+	sub	lr,	lr, #4
+	push {r0-r12, lr}
+	bl vector_irq
+	ldr r1, =need_schedule
+	ldr r0, [r1]
+	cmp r0, #0
+	beq 1f
+
+	/*clear schedure flag*/
+	mov r0, #0
+	str r0, [r1]
+
+	pop	{r0-r12, r14}
+	srsdb	sp!, 0x13 /* Save LR_irq and SPSR_irq to SVC mode stack */
+	cps		0x13		/* Switch to SVC mode */
+	push {r0-r12, r14}
+
+	/*save stack pointer to current TCB*/
+	ldr r1, =curr_tcb
+	ldr r0, [r1]
+	str sp, [r0]
+
+	/*load stack pointer from next TCB*/
+	ldr r3, =next_tcb
+	ldr r2, [r3]
+	ldr sp, [r2]
+
+	/* curr_tcb = next_tcb*/
+	str r2, [r1]
+	pop {r0-r12, r14}
+	/*cannot use rfeia, because both os and app code is on svc mode,
+	 * not usr or sys mode
+	 */
+	//rfeia sp!	/* Return using RFE from SVC mode stack */
+	ldr	r6,	[sp], #4	/*pc*/
+	ldr	r7,	[sp], #4	/*cpsr*/
+	msr cpsr, r7
+	/* check task is in thumb or ARM state*/
+	tst r7, #0x20
+	bne	2f
+	/*To ARM state*/
+	bx r6
+2:
+	/*add #1 to pc, exchange to thumb state*/
+	add r6, r6, #1
+	bx r6
+1:
+	pop {r0-r12, r14}
+	movs pc,lr
+
+__vector_undef:
+	mov r0, lr
+	mrs r1, spsr
+	mrs r2, cpsr
+	b	.
+
+vector_pabt:
+	mov r0, lr
+	mrs r1, spsr
+	b	.
+
+vector_dabt:
+	mov r0, lr
+	mrs r1, spsr
+	b	.
 
 	.globl __reset_entry
 __reset_entry:

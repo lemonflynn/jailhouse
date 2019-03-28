@@ -36,7 +36,10 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
 void __attribute__((interrupt("IRQ"), used)) vector_irq(void);
+*/
+void vector_irq(void);
 
 static inline void arch_disable_irqs(void)
 {

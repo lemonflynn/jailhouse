@@ -47,6 +47,7 @@ static inline void gic_setup_irq_stack(void)
 		"msr	SP_irq, %0\n\t"
 		"cpsie	i\n\t"
 		: : "r" (irq_stack + sizeof(irq_stack)));
+	printk("irq statck %p\n", irq_stack + sizeof(irq_stack));
 }
 
 #endif /* !__ASSEMBLY__ */
