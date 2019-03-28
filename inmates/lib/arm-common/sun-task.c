@@ -119,9 +119,3 @@ enum sun_state get_task_state(unsigned int task_num)
     return tcb_list[task_num].state;
 }
 
-void do_scheduler()
-{
-	int a = 0;
-	a++;
-}
-
