@@ -2,6 +2,7 @@
 #include <gic.h>
 #include <sun_task.h>
 #include <sun_timer.h>
+#include <sun_ipc.h>
 
 /*10ms for one beat*/
 #define BEATS_PER_SEC		100
@@ -31,12 +32,15 @@ void task2(void);
 /* Timer callback */
 int timer1_cb(void * data);
 
+struct msg_queue msg_queue1;
+
 extern volatile bool sun_os_start;
 extern bool need_schedule;
 extern struct sun_tcb * curr_tcb;
 extern struct sun_tcb * next_tcb;
 
 char * msg = "flynn";
+char message_test[16] = "1234567890abcde";
 
 static void handle_IRQ(unsigned int irqn)
 {
@@ -95,6 +99,9 @@ static void handle_IRQ(unsigned int irqn)
 void inmate_main(void)
 {
 	sun_timer_init();
+	msg_pool_init();
+	init_msg_queue(&msg_queue1, 10);
+
 	printk("Initializing the GIC...\n");
 	gic_setup(handle_IRQ);
 	gic_enable_irq(TIMER_IRQ);
@@ -125,11 +132,19 @@ void inmate_main(void)
 int timer1_cb(void * data)
 {
     static unsigned int i;
+	char a;
     sun_timer_malloc(500, timer1_cb, msg);
 
 	ENTER_CRITICAL();
 	printk("This is %d times message-----------------------\n", i++);
 	EXIT_CRITICAL();
+
+	a = message_test[0];
+	memcpy(message_test, &message_test[1], 14);
+	message_test[14] = a;
+	message_test[15] = 0;
+
+	push_msg_queue(&msg_queue1, message_test, sizeof(message_test));
 
     return 0;
 }
@@ -138,18 +153,23 @@ void task0(void)
 {
 	volatile int i,j;
 	volatile int cnt = 0;
-	int ccpsr=0;
+	int ret, ccpsr=0;
+	unsigned int size;
+	char * message = NULL;
 
 	asm volatile(
 		"mrs	%1, cpsr\n"
 		:"+r"(ccpsr));
 
 	while(1) {
+		ret = pop_msg_queue(&msg_queue1, (void **)&message, &size);
 		ENTER_CRITICAL();
+		if(ret == NO_ERR)
+			printk("Get a message:%s\n", message);
 		printk("This is task 0x%08x %d times \n", ccpsr, cnt++);
 		EXIT_CRITICAL();
 		for(i=0;i<100000;i++)
-			for(j=0;j<100;j++)
+			for(j=0;j<1000;j++)
 				asm volatile("nop\n\t");
 	}
 }
@@ -164,7 +184,7 @@ void task1(void)
 		printk("This is task1 %d times \n", cnt++);
 		EXIT_CRITICAL();
 		for(i=0;i<100000;i++)
-			for(j=0;j<100;j++)
+			for(j=0;j<1000;j++)
 				asm volatile("nop\n\t");
 	}
 }
@@ -179,7 +199,7 @@ void task2(void)
 		printk("This is task2 %d times \n", cnt++);
 		EXIT_CRITICAL();
 		for(i=0;i<100000;i++)
-			for(j=0;j<100;j++)
+			for(j=0;j<1000;j++)
 				asm volatile("nop\n\t");
 	}
 }
