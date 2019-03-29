@@ -86,12 +86,10 @@ int start_task(unsigned int task_num)
 	 */
 	asm volatile (
 	"mov sp, %0\n"
-	"pop {r0-r12, r14}\n"
-	"ldr	r6,	[sp], #4\n"
-	"ldr	r7,	[sp], #4\n"
-	"msr cpsr, r7\n"
-	"mov	pc,	r6\n"
-	::"r"(curr_tcb->stack_base));
+	"mov r7, %1\n"
+	"ldr r8, [r7]\n"
+	"mov pc, r8\n"
+	::"r"(curr_tcb->stack_base+16*4),"r"(curr_tcb->stack_base + 14*4));
 
 	return 0;
 }
