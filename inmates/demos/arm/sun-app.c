@@ -1,6 +1,7 @@
 #include <inmate.h>
 #include <gic.h>
 #include <sun_task.h>
+#include <sun_timer.h>
 
 /*10ms for one beat*/
 #define BEATS_PER_SEC		100
@@ -27,10 +28,15 @@ void task0(void);
 void task1(void);
 void task2(void);
 
+/* Timer callback */
+int timer1_cb(void * data);
+
 extern volatile bool sun_os_start;
 extern bool need_schedule;
 extern struct sun_tcb * curr_tcb;
 extern struct sun_tcb * next_tcb;
+
+char * msg = "flynn";
 
 static void handle_IRQ(unsigned int irqn)
 {
@@ -40,6 +46,7 @@ static void handle_IRQ(unsigned int irqn)
 	if (irqn != TIMER_IRQ)
 		return;
 
+	sun_timer_handler();
 	delta = timer_get_ticks() - expected_ticks;
 	if (delta < min_delta)
 		min_delta = delta;
@@ -87,6 +94,7 @@ static void handle_IRQ(unsigned int irqn)
 
 void inmate_main(void)
 {
+	sun_timer_init();
 	printk("Initializing the GIC...\n");
 	gic_setup(handle_IRQ);
 	gic_enable_irq(TIMER_IRQ);
@@ -105,11 +113,25 @@ void inmate_main(void)
     create_task("task1", (unsigned int)task1_stack, sizeof(task1_stack), (unsigned int)task1);
     create_task("task2", (unsigned int)task2_stack, sizeof(task2_stack), (unsigned int)task2);
 
+	sun_timer_malloc(500, timer1_cb, msg);
+
 	printk("start task0\n");
 	start_task(0);
 	//task0();
 	while(1);
 	halt();
+}
+
+int timer1_cb(void * data)
+{
+    static unsigned int i;
+    sun_timer_malloc(500, timer1_cb, msg);
+
+	ENTER_CRITICAL();
+	printk("This is %d times message-----------------------\n", i++);
+	EXIT_CRITICAL();
+
+    return 0;
 }
 
 void task0(void)
